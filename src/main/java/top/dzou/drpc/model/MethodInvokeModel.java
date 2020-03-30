@@ -1,4 +1,4 @@
-package top.dzou.drpc;
+package top.dzou.drpc.model;
 
 import java.io.Serializable;
 
@@ -6,6 +6,10 @@ import java.io.Serializable;
  * Created by dingxiang
  *
  * @date 2020/3/30
+ */
+
+/**
+ * 调用方法信息
  */
 public class MethodInvokeModel implements Serializable {
     private String interfaceName;

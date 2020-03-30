@@ -1,4 +1,4 @@
-package top.dzou.drpc;
+package top.dzou.drpc.model.enums;
 
 /**
  * Created by dingxiang

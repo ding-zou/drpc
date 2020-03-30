@@ -6,6 +6,7 @@
 
     <groupId>org.example</groupId>
     <artifactId>drpc</artifactId>
+    <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
     <build>
         <plugins>
@@ -19,6 +20,15 @@
             </plugin>
         </plugins>
     </build>
-
+    <modules>
+        <module>demo</module>
+    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+        </dependency>
+    </dependencies>
 
 </project>
