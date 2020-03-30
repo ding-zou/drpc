@@ -24,9 +24,42 @@ import java.util.Set;
  *
  * @date 2020/3/30
  */
-public class DRpcClient<T> {
+public class DRpcClient {
 
-    public static <T> T getRemoteProxyObj(SocketEnum socketEnum, final Class<?> serviceInterface, final InetSocketAddress addr) {
+    private int soTimeout;
+    private static ConnectionPool socketPool;
+    private String host;
+    private int port;
+    private InetSocketAddress addr;
+
+    private SocketEnum socketEnum;
+
+    public DRpcClient(SocketEnum socketEnum, String host, int port) {
+        this(socketEnum, host, port, 60);
+    }
+
+    /**
+     * @param soTimeout TIMEUNIT second
+     */
+    public DRpcClient(SocketEnum socketEnum, String host, int port, int soTimeout) {
+        this.socketEnum = socketEnum;
+        this.host = host;
+        this.port = port;
+        this.soTimeout = soTimeout * 1000;
+        try {
+            if (socketEnum == SocketEnum.NIO) {
+                socketPool = new NioChannelPool(host, port);
+            } else {
+                socketPool = new SocketPool(host, port);
+            }
+            this.addr = new InetSocketAddress(host, port);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public <T> T getRemoteProxyObj(final Class<?> serviceInterface) {
         // 1.将本地的接口调用转换成JDK的动态代理，在动态代理中实现接口的远程调用
         return (T) Proxy.newProxyInstance(serviceInterface.getClassLoader(), new Class<?>[]{serviceInterface},
                 new InvocationHandler() {
@@ -34,9 +67,9 @@ public class DRpcClient<T> {
                         // 2.创建Socket客户端，根据指定地址连接远程服务提供者
                         switch (socketEnum) {
                             case NIO:
-                                return nioClientHandler(serviceInterface, addr, method, args);
+                                return nioClientHandler(serviceInterface, method, args);
                             case SOCKET:
-                                return socketClientHandler(serviceInterface, addr, method, args);
+                                return socketClientHandler(serviceInterface, method, args);
                             default:
                                 return null;
                         }
@@ -44,14 +77,13 @@ public class DRpcClient<T> {
                 });
     }
 
-    private static Object socketClientHandler(final Class<?> serviceInterface, final InetSocketAddress addr, Method method, Object[] args) throws IOException {
+    private Object socketClientHandler(final Class<?> serviceInterface, Method method, Object[] args) throws IOException {
         Socket socket = null;
         ObjectOutputStream output = null;
         ObjectInputStream input = null;
         try {
-            socket = new Socket();
-            socket.connect(addr);
-
+            socket = (Socket) socketPool.getSocket();
+            socket.setSoTimeout(soTimeout);
             // 将远程服务调用所需的接口类、方法名、参数列表等编码后发送给服务提供者
             output = new ObjectOutputStream(socket.getOutputStream());
             output.writeUTF(serviceInterface.getName());
@@ -65,23 +97,21 @@ public class DRpcClient<T> {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            if (socket != null) socket.close();
+            if (socket != null) socketPool.release(socket);
             if (output != null) output.close();
             if (input != null) input.close();
         }
         return null;
     }
 
-    private static Object nioClientHandler(final Class<?> serviceInterface, final InetSocketAddress addr, Method method, Object[] args) throws IOException {
-        SocketChannel socketChannel = SocketChannel.open();
-        socketChannel.configureBlocking(false);
+    private Object nioClientHandler(final Class<?> serviceInterface, Method method, Object[] args) throws IOException {
+        SocketChannel socketChannel = (SocketChannel) socketPool.getSocket();
         Selector selector = Selector.open();
         socketChannel.register(selector, SelectionKey.OP_CONNECT);
-        socketChannel.connect(addr);
         MethodInvokeModel methodInvokeModel = new MethodInvokeModel(serviceInterface.getName(), method.getName(), method.getParameterTypes(), args);
         try {
             while (true) {
-                int num = selector.select();
+                int num = selector.select(soTimeout);
                 Set<SelectionKey> selectionKeys = selector.selectedKeys();
                 Iterator<SelectionKey> iterator = selectionKeys.iterator();
                 while (iterator.hasNext()) {
@@ -127,9 +157,9 @@ public class DRpcClient<T> {
                 }
                 selectionKeys.clear();//每次处理完一个SelectionKey的事件，把该SelectionKey删除
             }
-        }finally {
-            socketChannel.close();
+        } finally {
             selector.close();
+            socketPool.release(socketChannel);
         }
     }
 }

@@ -12,6 +12,8 @@ public interface DRpcServer {
 
     void start() throws IOException;
 
+    void startAsync() throws IOException;
+
     void register(Class serviceInterface, Class impl);
 
     boolean isRunning();

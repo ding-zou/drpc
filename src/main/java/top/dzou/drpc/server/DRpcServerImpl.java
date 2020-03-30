@@ -61,6 +61,11 @@ public class DRpcServerImpl implements DRpcServer {
         }
     }
 
+    @Override
+    public void startAsync() throws IOException {
+
+    }
+
     public void register(Class serviceInterface, Class impl) {
         serviceRegistry.put(serviceInterface.getName(), impl);
         try {
