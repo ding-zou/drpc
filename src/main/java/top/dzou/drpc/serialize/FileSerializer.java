@@ -1,4 +1,4 @@
-package top.dzou.drpc.util;
+package top.dzou.drpc.serialize;
 
 import java.io.*;
 
@@ -7,7 +7,7 @@ import java.io.*;
  *
  * @date 2020/3/30
  */
-public class SerializeUtil {
+public class FileSerializer implements ISerializer {
     public static byte[] serialize(Object obj) {
         try {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -23,7 +23,7 @@ public class SerializeUtil {
         }
     }
 
-    public static Object unSerialize(byte[] bytes) {
+    public static Object deserialize(byte[] bytes) {
         try {
             ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
             ObjectInputStream ois = new ObjectInputStream(bis);

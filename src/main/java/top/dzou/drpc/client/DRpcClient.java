@@ -1,8 +1,10 @@
 package top.dzou.drpc.client;
 
+import top.dzou.drpc.manager.DRpcContext;
 import top.dzou.drpc.model.MethodInvokeModel;
+import top.dzou.drpc.model.enums.SerializerEnum;
 import top.dzou.drpc.model.enums.SocketEnum;
-import top.dzou.drpc.util.SerializeUtil;
+import top.dzou.drpc.serialize.FileSerializer;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -31,21 +33,25 @@ public class DRpcClient {
     private String host;
     private int port;
     private InetSocketAddress addr;
+    private DRpcContext dRpcContext;
 
     private SocketEnum socketEnum;
 
     public DRpcClient(SocketEnum socketEnum, String host, int port) {
-        this(socketEnum, host, port, 60);
+        this(socketEnum, host, port, 60,SerializerEnum.FILE);
     }
 
     /**
-     * @param soTimeout TIMEUNIT second
+     * @param soTimeout TIME_UNIT second
      */
-    public DRpcClient(SocketEnum socketEnum, String host, int port, int soTimeout) {
+    public DRpcClient(SocketEnum socketEnum, String host, int port, int soTimeout, SerializerEnum serializerEnum) {
+        dRpcContext = new DRpcContext();
         this.socketEnum = socketEnum;
         this.host = host;
         this.port = port;
         this.soTimeout = soTimeout * 1000;
+        dRpcContext = DRpcContext.getInstance();
+        dRpcContext.setSerializer(serializerEnum);
         try {
             if (socketEnum == SocketEnum.NIO) {
                 socketPool = new NioChannelPool(host, port);
@@ -123,7 +129,8 @@ public class DRpcClient {
                         }
                         client.register(selector, SelectionKey.OP_WRITE);
                     } else if (selectionKey.isWritable()) {
-                        byte[] data = SerializeUtil.serialize(methodInvokeModel);
+//                        byte[] data = DRpcContext.getSerializerDispatcher().dispatchSerialize(methodInvokeModel);
+                        byte[] data = FileSerializer.serialize(methodInvokeModel);
                         SocketChannel client = (SocketChannel) selectionKey.channel();
                         ByteBuffer writeBuffer = ByteBuffer.allocate(data.length + 4);
                         writeBuffer.clear();
@@ -151,7 +158,8 @@ public class DRpcClient {
                             return null;
                         }
                         byte[] bytes = byteBuffer.array();
-                        Object result = SerializeUtil.unSerialize(bytes);
+                        Object result = dRpcContext.getSerializerDispatcher().dispatchDeserialize(bytes);
+//                        Object result = SerializeUtil.unSerialize(bytes);
                         return result;
                     }
                 }
@@ -161,5 +169,9 @@ public class DRpcClient {
             selector.close();
             socketPool.release(socketChannel);
         }
+    }
+
+    public DRpcContext getdRpcContext() {
+        return dRpcContext;
     }
 }

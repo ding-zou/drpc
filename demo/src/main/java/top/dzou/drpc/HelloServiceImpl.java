@@ -12,4 +12,9 @@ public class HelloServiceImpl implements HelloService {
         return "Hi, " + name;
     }
 
+    @Override
+    public Hello.HelloRes sayHi(Hello.HelloArg name) {
+        return Hello.HelloRes.newBuilder().setResult(name.getName() + "hi").build();
+    }
+
 }

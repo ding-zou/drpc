@@ -1,0 +1,13 @@
+syntax = "proto2";
+package top.dzou.drpc;
+option optimize_for = SPEED;
+option java_package = "top.dzou.drpc";
+option java_outer_classname = "Hello";
+
+
+message HelloArg{
+  required string name = 1;
+}
+message HelloRes{
+  required string result = 1;
+}

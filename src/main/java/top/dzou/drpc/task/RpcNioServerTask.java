@@ -1,8 +1,11 @@
 package top.dzou.drpc.task;
 
+import com.google.protobuf.Message;
 import org.apache.log4j.Logger;
+import top.dzou.drpc.manager.DRpcContext;
 import top.dzou.drpc.model.MethodInvokeModel;
-import top.dzou.drpc.util.SerializeUtil;
+import top.dzou.drpc.serialize.FileSerializer;
+import top.dzou.drpc.serialize.ProtobufSerializer;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -35,7 +38,8 @@ public class RpcNioServerTask implements Runnable {
     public void run() {
         if (bytes != null && bytes.length > 0 && channel != null) {
             // 反序列化
-            MethodInvokeModel methodInvokeModel = (MethodInvokeModel) SerializeUtil.unSerialize(bytes);
+//            MethodInvokeModel methodInvokeModel = (MethodInvokeModel) DRpcContext.getSerializerDispatcher().dispatchDeserialize(bytes);
+            MethodInvokeModel methodInvokeModel = (MethodInvokeModel) FileSerializer.deserialize(bytes);
             // 调用服务并序列化结果然后返回
             try {
                 requestNioServerHandle(serviceRegistry, methodInvokeModel, channel);
@@ -60,7 +64,10 @@ public class RpcNioServerTask implements Runnable {
         Method method = serviceClass.getMethod(methodName, parameterTypes);
         Object result = method.invoke(serviceClass.newInstance(), arguments);
         //将执行结果反序列化，通过channel发送给客户端
-        byte[] bytes = SerializeUtil.serialize(result);
+        byte[] bytes = DRpcContext.getInstance().getSerializerDispatcher().dispatchSerialize(result);
+//        byte[] bytes = SerializeUtil.serialize(result);
+//        byte[] bytes = ProtobufSerializer.serialize((Message) result);
+//        ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
         ByteBuffer buffer = ByteBuffer.allocate(bytes.length + 4);
         buffer.putInt(bytes.length);
         buffer.put(bytes);

@@ -1,9 +1,11 @@
 package top.dzou.drpc.server;
 
 import org.apache.log4j.Logger;
+import top.dzou.drpc.manager.DRpcContext;
 import top.dzou.drpc.manager.IServerManager;
 import top.dzou.drpc.manager.NioServerManager;
 import top.dzou.drpc.manager.SocketServerManager;
+import top.dzou.drpc.model.enums.SerializerEnum;
 import top.dzou.drpc.model.enums.SocketEnum;
 
 import java.io.IOException;
@@ -32,11 +34,14 @@ public class DRpcServerImpl implements DRpcServer {
     private Selector nioSelector;
     private IServerManager manager;
 
+    private DRpcContext dRpcContext;
     private static int port;
 
-    public DRpcServerImpl(int port, SocketEnum socketEnum) {
+    public DRpcServerImpl(int port, SocketEnum socketEnum, SerializerEnum serializerEnum) {
         this.port = port;
         this.socketEnum = socketEnum;
+        dRpcContext = DRpcContext.getInstance();
+        dRpcContext.setSerializer(serializerEnum);
         if (socketEnum.equals(SocketEnum.SOCKET)) {
             manager = new SocketServerManager();
         } else if (SocketEnum.NIO.equals(socketEnum)) {
@@ -61,10 +66,6 @@ public class DRpcServerImpl implements DRpcServer {
         }
     }
 
-    @Override
-    public void startAsync() throws IOException {
-
-    }
 
     public void register(Class serviceInterface, Class impl) {
         serviceRegistry.put(serviceInterface.getName(), impl);

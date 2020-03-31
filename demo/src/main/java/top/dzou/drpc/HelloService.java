@@ -10,4 +10,5 @@ public interface HelloService {
 
     String sayHi(String name);
 
+    Hello.HelloRes sayHi(Hello.HelloArg name);
 }
